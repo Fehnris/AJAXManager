@@ -2,7 +2,11 @@
 AJAXManager is currently in development.  The goal of this project is to design an all in one solution, both client side (Javascript) and server side (PHP) libraries, that give a web developer a fast and easy way to add AJAX functionality to a web project.  The goal of these libraries is to manage and hide the developer from all the intricacies of implementing AJAX by managing all the client/server communication and offer tlhe developer, APIs on both client and server side that can be used to send/receive data.
 
 ### Libraries (Brief Description)
-AJAXManager repository contains 2 libraries namely AJAXManagerClient and AJAXManagerServer. AJAXManagerClient provides all neccessary client side AJAX functionality to each component so each component need not be concerned with the intricacities of AJAX and can have a uniformed API for fetching data. AJAXManagerServer library acts as the receiving end of AJAXManagerClient and provides the server side of AJAX functionality. This repository is being designed along side AJAXManagerClient to provide seemless AJAX transactions without the need to know all the intricacities of AJAX.
+AJAXManager repository contains 2 libraries namely AJAXManagerClient and AJAXManagerServer. AJAXManagerClient provides all neccessary client side AJAX functionality (written in JAVASCRIPT). AJAXManagerServer library acts as the receiving end of AJAXManagerClient and provides the server side of AJAX functionality.
+
+### Features
+##### 1. Built in communication security.
+AJAX transactions between client and server use a random key for every transaction.  This random key is unique based on several variables including visitors IP Address/Client details, SessionID and more.  While some of these details are not always available it does offer a way to determine the consistency of a visitor by checking for a change or absence of information during each transaction.  These random keys are a one time use.  With every new successful AJAX transaction between client and server, a new key is supplied for use on the next transaction.  While not 100% secure this feature does provide server side resources a good amount of protection from non-web application requests.
 
 ### Documentation
 1. AJAXManagerClient - (Documentation not yet written)
