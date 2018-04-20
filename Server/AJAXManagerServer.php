@@ -1,6 +1,6 @@
 <?php
 
-class AJAXAuthObject {
+class AJAXManagerServer {
 	
 	private $DB_Credentials;
 	private $DB_Error;
@@ -17,6 +17,7 @@ class AJAXAuthObject {
 	private $visitorDetailsField;
 	private $ISKStoreName;
 	private $ASKStoreName;
+	private $ASK;
 	
 	public function __construct($DB_HOST, $DB_USER, $DB_PASSWORD,
 								$DB_NAME, $DB_TABLE_NAME,
@@ -36,7 +37,7 @@ class AJAXAuthObject {
 	}
 	
 	
-	public function create_ISK() {
+	public function Initialise() {
 		$visitorDetails = $this->get_Visitor_Vars();
 		$ISKToken = $this->get_Random_Token();
 		$newDateTime = $this->get_Index_Date();
@@ -48,11 +49,10 @@ class AJAXAuthObject {
 						 $nowDateTime);
 		$ISKIndex .= ":".$nowDateTime;
 		$_SESSION[$this->ISKStoreName][$ISKIndex] = $NewISK;
-		return array("AuthCookieName"=>base64_encode($this->sessionField['VALUE'].$ISKToken),
-					 "AuthCookieValue"=>$NewISK);
+		return "{ 'CN' : '".base64_encode($this->sessionField['VALUE'].$ISKToken)."', 'CV' : '".$NewISK."' }";
 	}
 	
-	public function authorise_ISK() {
+	public function Authorise() {
 		$firstASK = "";
 		if(isset($_GET['t'])) {
 			$authCookieName = $_GET['t'];
@@ -99,10 +99,12 @@ class AJAXAuthObject {
 		else { //Cookie name of auth cookie not sent.  Can't get ISK from cookie as ISK cookie name is not known.
 		}
 		//$firstASK = "SESSION ARRAY".$_SESSION[$this->ISKStoreName];
-		return $firstASK;
+		$this->ASK = $firstASK;
+		return $this->Response("");
 	}
 	
-	public function authorise_ASK() {
+	public function Authenticate() {
+		$Authenticated = false;
 		$newASK = "";
 		if(isset($_REQUEST['k'])) {
 			$ASK = $_REQUEST['k'];
@@ -119,6 +121,7 @@ class AJAXAuthObject {
 					$ASKProperties['ASKToken'] = $this->get_Random_Token();
 					$ASKProperties['CreationDateTime'] = $this->get_Index_Date();
 					$ASKIndex = implode(":", $ASKProperties);
+					$Authenticated = true;
 					$newASK = md5($ASKIndex);
 					$this->pageField['VALUE'] = $ASKProperties['AuthPage'];
 					$this->initialisationTokenField['VALUE'] = $ASKProperties['ISKToken'];
@@ -153,7 +156,32 @@ class AJAXAuthObject {
 		else {
 			//Old ASK not sent.
 		}
-		return $newASK;
+		$this->ASK = $newASK;
+		return $Authenticated;
+	}
+	
+	public function Response($DATA_TO_SEND) {
+		if($this->ASK == "") { $DATA_TO_SEND = "Authentication failure.  Access to this resource has been blocked"; }
+		$returnObj = (object) array("query"=>"", "token"=>"");
+		$returnObj->query = $this->sanitise_Return_Data($DATA_TO_SEND);
+		$returnObj->token = $this->ASK;
+		return json_encode($returnObj);
+	}
+	
+	public function Query($METHOD) {
+		if($METHOD == "GET" OR $METHOD == "") {
+			return $_REQUEST['q'];
+		}
+		elseif($METHOD == "POST") {
+			return $_POST['q'];
+		}
+	}
+	
+	private function sanitise_Return_Data($DATA) {
+		if(gettype($DATA) == "object") {
+			json_encode($DATA);
+		}
+		return $DATA;
 	}
 	
 	private function get_Index_Date() {

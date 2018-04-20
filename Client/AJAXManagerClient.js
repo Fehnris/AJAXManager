@@ -172,9 +172,9 @@ function AJAXManagerClient() {
 		//return returnStr;
 	}
 
-	this.handshake = function(AJAXAuthURL, CookieName, CookieValue) {
-		document.cookie = CookieName + "=" + CookieValue + ";path=/";
-		this.sendAuth(AJAXAuthURL, CookieName);
+	this.Authorise = function(AJAXAuthURL, authObj) {
+		document.cookie = authObj["CN"] + "=" + authObj["CV"] + ";path=/";
+		this.sendAuth(AJAXAuthURL, authObj["CN"]);
 	}
 
 	this.showAutoComplete = function(textBox) {
@@ -191,8 +191,8 @@ function AJAXManagerClient() {
 		xmlhttp.addEventListener("error", function() {});
 		xmlhttp.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
-				var rspns = this.responseText;
-				self.k = rspns;
+				var rspns = self.validateResponse(this.responseText);
+				self.k = rspns.token;
 			}
 		};
 		xmlhttp.open("GET", encodeURI(url + "?t=" + CookieName), true);
