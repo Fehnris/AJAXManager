@@ -1,6 +1,4 @@
 ## AJAXManager return data object format.
-
-
 JSON = {
 'ERROR' : [{ 'LAYER' : '', 'MESSAGE' }],
 'LASTERROR' : '',
