@@ -1,15 +1,15 @@
 ## AJAXManager return data object format.
 JSON = {
-'ERROR' : [{ 'LAYER' : '', 'MESSAGE' }],
-'LASTERROR' : '',
+'ERROR' : [{ 'LAYER' : '', 'MESSAGE' : '' }],
+'ERRORS' : true/false,
 'DATA' : { 'TYPE' : '', 'DATA' : '' },
 'TOKEN' : ''
 }
 	   
-#### 'ERROR' : [{ 'LAYER' : '', 'MESSAGE' }]
+#### 'ERROR' : [{ 'LAYER' : '', 'MESSAGE' : '' }]
 Array of error messages.  Layer = part of process error happened.  Message = String error.
-#### 'LASTERROR' : ''
-The last error that occurred from ERROR.  String error message.
+#### 'ERRORS' : true/false
+If there are errors this is true or false for no errors.
 #### 'DATA' : { 'TYPE' : '', 'DATA' : '' }
 The AJAX information being sent.  Type = String or Object or Null.  Data = The raw data.
 #### 'TOKEN' : ''
