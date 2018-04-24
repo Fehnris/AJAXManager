@@ -2,7 +2,7 @@
 JSON = {
 'ERROR' : [{ 'LAYER' : '', 'MESSAGE' : '' }],
 'ERRORS' : true/false,
-'DATA' : { 'TYPE' : '', 'DATA' : '' },
+'DATA' : { 'TYPE' : '', 'VALUE' : '' },
 'TOKEN' : ''
 }
 	   
@@ -10,7 +10,8 @@ JSON = {
 Array of error messages.  Layer = part of process error happened.  Message = String error.
 #### 'ERRORS' : true/false
 If there are errors this is true or false for no errors.
-#### 'DATA' : { 'TYPE' : '', 'DATA' : '' }
-The AJAX information being sent.  Type = String or Object or Null.  Data = The raw data.
+#### 'DATA' : { 'TYPE' : '', 'VALUE' : '' }
+The AJAX information being sent.  Type = The type of data being sent.  String or Object or Null.
+VALUE = The data itself.
 #### 'TOKEN' : ''
 The authentication key to provide security to resources.  Stored as a string.
