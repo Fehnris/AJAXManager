@@ -1,5 +1,5 @@
 ## AJAXManager return data object format.
-AJAXManager utilises JSON to send information between browser and server.  The following object format has been designed to allow for various parts of information that might be required to be sent.  Included are properties to represent error checking, AJAX data, and security keys.
+AJAXManager utilises JSON to send information between browser and server.  The following object format has been designed to allow for various parts of information that might be required to be sent.  Included are properties to represent error checking, AJAX data, and security keys.  Every transaction between AJAXManagerClient and AJAXManagerServer results in the following JSON object being returned from AJAXManagerServer to AJAXManagerClient.
 
 JSON = {
 'ERROR' : [{ 'LAYER' : '', 'MESSAGE' : '' }],
