@@ -18,6 +18,8 @@ class AJAXManagerServer {
 	private $ISKStoreName;
 	private $ASKStoreName;
 	private $ASK;
+	private $ERROBJ;
+	private $ERRORS;
 	
 	public function __construct($DB_HOST, $DB_USER, $DB_PASSWORD,
 								$DB_NAME, $DB_TABLE_NAME,
@@ -33,6 +35,9 @@ class AJAXManagerServer {
 		$this->visitorDetailsField = array("FIELD"=>"Visitor_Details", "VALUE"=>"");
 		$this->sessionField = array("FIELD"=>"Session_ID", "VALUE"=>session_id());
 		$this->pageField = array("FIELD"=>"Auth_Page", "VALUE"=>$PAGE_NAME);
+		$this->ASK = "";
+		$this->ERROBJ = array();
+		$this->ERRORS = false;
 		
 	}
 	
@@ -84,21 +89,30 @@ class AJAXManagerServer {
 							setcookie($authCookieName, "", time()-3600);
 							$this->create_Auth_Record();
 						}
-						else { //The Client that requested the ISK isn't the same as the one responding with the ISK.
+						else {
+							$this->setError("Authentication failure.  Access to this resource has been blocked", 100);
+							//The Client that requested the ISK isn't the same as the one responding with the ISK.
 						}
 					}
-					else { //Session IDs for creation of ISK and response of ISK don't match.  Fake request, different client used to respond.
+					else {
+						$this->setError("Authentication failure.  Access to this resource has been blocked", 100);
+						//Session IDs for creation of ISK and response of ISK don't match.  Fake request, different client used to respond.
 					}
 				}
-				else { //The sent ISK can't be found in the Store.  The ISK is a fake request.
+				else {
+					$this->setError("Authentication failure.  Access to this resource has been blocked", 100);
+					//The sent ISK can't be found in the Store.  The ISK is a fake request.
 				}
 			}
-			else { //No auth cookie found corresponding to the cookie name sent.
+			else {
+				$this->setError("Authentication failure.  Access to this resource has been blocked", 100);
+				//No auth cookie found corresponding to the cookie name sent.
 			}
 		}
-		else { //Cookie name of auth cookie not sent.  Can't get ISK from cookie as ISK cookie name is not known.
+		else {
+			$this->setError("Authentication failure.  Access to this resource has been blocked", 100);
+			//Cookie name of auth cookie not sent.  Can't get ISK from cookie as ISK cookie name is not known.
 		}
-		//$firstASK = "SESSION ARRAY".$_SESSION[$this->ISKStoreName];
 		$this->ASK = $firstASK;
 		return $this->Response("");
 	}
@@ -142,18 +156,22 @@ class AJAXManagerServer {
 					}
 				}
 				else {
+					$this->setError("Authentication failure.  Access to this resource has been blocked", 100);
 					//The Client that requested the ISK isn't the same as the one responding with the ISK.
 				}
 			}
 			else {
+				$this->setError("Authentication failure.  Access to this resource has been blocked", 100);
 				//Session IDs for creation of ISK and response of ISK don't match.  Fake request, different client used to respond.
 			}
 		}
 		else {
+			$this->setError("Authentication failure.  Access to this resource has been blocked", 100);
 			//The sent ISK can't be found in the Store.  The ISK is a fake request.
 		}
 		}
 		else {
+			$this->setError("Authentication failure.  Access to this resource has been blocked", 100);
 			//Old ASK not sent.
 		}
 		$this->ASK = $newASK;
@@ -161,11 +179,32 @@ class AJAXManagerServer {
 	}
 	
 	public function Response($DATA_TO_SEND) {
-		if($this->ASK == "") { $DATA_TO_SEND = "Authentication failure.  Access to this resource has been blocked"; }
-		$returnObj = (object) array("query"=>"", "token"=>"");
-		$returnObj->query = $this->sanitise_Return_Data($DATA_TO_SEND);
-		$returnObj->token = $this->ASK;
+		$returnObj = $this->construct_Return_Object();
+		$ERROR = array();
+		$ERRORS = $this->ERRORS;
+		if($ERRORS) {
+			$DATA_TO_SEND = null;
+			$ERROR = $this->ERROBJ;
+		}
+		$returnObj->ERROR = $ERROR;
+		$returnObj->ERRORS = $ERRORS;
+		$returnObj->DATA->TYPE = gettype($DATA_TO_SEND);
+		$returnObj->DATA->VALUE = $DATA_TO_SEND;
+		$returnObj->TOKEN = $this->ASK;
 		return json_encode($returnObj);
+	}
+	
+	public function setError($ERR, $ERRCODE) {
+		$this->ERRORS = true;
+		$this->ERROBJ[count($this->ERROBJ)] = (object) array( "LAYER"=>$ERRCODE, "MESSAGE"=>$ERR );
+	}
+	
+	private function construct_Return_Object() {
+		$returnObj = (object) array("ERROR"=> array(),
+									"ERRORS"=>false,
+								    "DATA"=> (object) array("TYPE"=>"Null", "VALUE"=>null),
+								    "TOKEN"=>"");
+		return $returnObj;
 	}
 	
 	public function Query($METHOD) {
@@ -179,7 +218,7 @@ class AJAXManagerServer {
 	
 	private function sanitise_Return_Data($DATA) {
 		if(gettype($DATA) == "object") {
-			json_encode($DATA);
+			$DATA = json_encode($DATA);
 		}
 		return $DATA;
 	}

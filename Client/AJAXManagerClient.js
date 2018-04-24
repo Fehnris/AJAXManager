@@ -50,9 +50,9 @@ function AJAXManagerClient() {
 			});
 			xmlhttp.onreadystatechange = function() {
 				if (this.readyState == 4 && this.status == 200) {
-					var rspns = JSON.parse(this.responseText);
-					if(rspns.token == "") {
-						self.formatDropDownItems([rspns.query], "dropDownItemContainerError", textBoxID, self, e);
+					var AJAX = JSON.parse(this.responseText);
+					if(AJAX.TOKEN == "") {
+						self.formatDropDownItems([AJAX.query], "dropDownItemContainerError", textBoxID, self, e);
 						self.showAutoComplete("#" + destID);
 						if(self.peek() == tID) { var item = self.dequeue(); }
 						self.kLock = false;
@@ -61,17 +61,17 @@ function AJAXManagerClient() {
 						var dealerNames = new Array();
 						var dealerNameList = "";
 						var itemClass = "";
-						if(rspns.query == "") {
+						if(AJAX.query == "") {
 							dealerNames[0] = "No Results Beginning With ' " + str + " '";
 							itemClass = "dropDownItemContainerError";
 						}
 						else {
-							dealerNames = rspns.query.split("+");
+							dealerNames = AJAX.query.split("+");
 							itemClass = "dropDownItemContainer";
 						}
 						self.formatDropDownItems(dealerNames, itemClass, textBoxID, self, e);
 						self.showAutoComplete("#" + destID);
-						self.k = rspns.token;
+						self.k = AJAX.TOKEN;
 						if(self.peek() == tID) { var item = self.dequeue(); }
 						self.kLock = false;
 					}
@@ -104,14 +104,14 @@ function AJAXManagerClient() {
 		xmlhttp.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
 				
-				var rspns = JSON.parse(this.responseText);
+				var AJAX = JSON.parse(this.responseText);
 				if(self.AJAXObjectRef[[textBoxID]][[e]]["postFormatting"] == undefined) {
-					self.AJAXObjectRef[[textBoxID]][[e]]["destinationID"] = rspns.query;
+					self.AJAXObjectRef[[textBoxID]][[e]]["destinationID"] = AJAX.query;
 				}
 				else {
-					//self.AJAXObjectRef[[textBoxID]][[e]]["destinationID"] = call(self.AJAXObjectRef[[textBoxID]][[e]]["postFormatting"], rspns);
+					//self.AJAXObjectRef[[textBoxID]][[e]]["destinationID"] = call(self.AJAXObjectRef[[textBoxID]][[e]]["postFormatting"], AJAX);
 				}
-				self.k = rspns.token;
+				self.k = AJAX.TOKEN;
 				if(self.peek() == tID) { var item = self.dequeue(); }
 				self.kLock = false;
 			}
@@ -191,8 +191,8 @@ function AJAXManagerClient() {
 		xmlhttp.addEventListener("error", function() {});
 		xmlhttp.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
-				var rspns = self.validateResponse(this.responseText);
-				self.k = rspns.token;
+				var AJAX = self.validateResponse(this.responseText);
+				self.k = AJAX.TOKEN;
 			}
 		};
 		xmlhttp.open("GET", encodeURI(url + "?t=" + CookieName), true);
@@ -224,21 +224,78 @@ function AJAXManagerClient() {
 	}
 	
 	this.validateResponse = function(json) {
-		var response = { 'query' : "Invalid response from server", 'token' : "" };
+		var response = this.constructReturnObject();
 		if(json !== null) {
 			try {
 				a = JSON.parse(json);
 				if(a && typeof a === 'object' && a.constructor === Object) {
-					if(a.query !== undefined && a.token !== undefined) {
-						response.query = a.query;
-						response.token = a.token;
+					var isValidReturn = this.validateReturnObject(a);
+					//alert("isValidReturn:" + isValidReturn);
+					if(isValidReturn) {
+						if(a.ERRORS == true) {
+							response.ERROR = this.setErrors(response.ERROR, a.ERROR);
+						}
+						response.DATA.TYPE = a.DATA.TYPE;
+						response.DATA.VALUE = a.DATA.VALUE;
+						response.TOKEN = a.TOKEN;
+					}
+					else {
+						response.ERROR = this.setError(response.ERROR, "INVALID", 100);
+						response.ERRORS = true;
 					}
 				}
+				else {
+					response.ERROR = this.setError(response.ERROR, "NOT OBJECT", 100);
+					response.ERRORS = true;
+				}
 			} catch (e) {
-				
+				response.ERROR = this.setError(response.ERROR, "NOT JSON", 100);
+				response.ERRORS = true;
 			}
 		}
 		return response;
+	}
+	
+	this.validateReturnObject = function(returnObj) {
+		if(returnObj.ERROR == undefined) {
+			//alert("ERROR");
+			return false;
+		}
+		if(returnObj.ERRORS == undefined) {
+			//alert("ERRORS");
+			return false;
+		}
+		if(returnObj.DATA.TYPE == undefined || returnObj.DATA.VALUE == undefined) {
+			//alert("DATA");
+			return false;
+		}
+		if(returnObj.TOKEN == undefined) {
+			//alert("TOKEN");
+			return false;
+		}
+		return true;
+	}
+	
+	this.setErrors = function(errorObj, error) {
+		var errorLength = error.length;
+		for(i = 0; i < errorLength; i++) {
+			errorObj.push(error[i]);
+		}
+		return errorObj;
+	}
+	
+	this.setError = function(errorObj, error, layer) {
+		errorObj.push({ 'LAYER' : layer, 'MESSAGE' : error });
+		return errorObj;
+	}
+	
+	this.constructReturnObject = function() {
+		var returnObj = { 'ERROR' : [],
+						  'ERRORS' : false,
+						  'DATA' : { 'TYPE' : null, 'VALUE' : "NULL" },
+						  'TOKEN' : ""
+						}
+		return returnObj;
 	}
 	
 	this.clickHandler = function(htmlObjectID, callback, e) {
@@ -310,29 +367,38 @@ function AJAXManagerClient() {
 		}
 		var xmlhttp = new XMLHttpRequest();
 		xmlhttp.addEventListener("error", function() {
-			callback["function"].call(callback["object"], "Could not contact Server", true, searchParams["QUERY"]); //return { 'data' : "", 'error' : "Could not contact Server" }
+			var AJAX = self.constructReturnObject();
+			AJAX.ERROR[0].LAYER = 100;
+			AJAX.ERROR[0].MESSAGE = "Count not contact Server";
+			delete AJAX.TOKEN;
+			callback["function"].call(callback["object"], AJAX, searchParams["QUERY"]); //return { 'data' : "", 'error' : "Could not contact Server" }
+			self.k = "";
 			if(self.peek() == tID) { var item = self.dequeue(); }
 			self.kLock = false;
 		});
 		xmlhttp.onreadystatechange = function() {
 			if (this.readyState == 4) {
-				var rspns = self.validateResponse(this.responseText);
 				if(this.status == 200) {
-					if(rspns.token == "") {
-						callback["function"].call(callback["object"], rspns.query, true, searchParams["QUERY"]); //return { 'data' : "", 'error' : rspns.query }
-						if(self.peek() == tID) { var item = self.dequeue(); }
-						self.kLock = false;
+					var AJAX = self.validateResponse(this.responseText);
+					var TOKEN = AJAX.TOKEN;
+					delete AJAX.TOKEN;
+					if(self.peek() == tID) { var item = self.dequeue(); }
+					self.kLock = false;
+					if(AJAX.TOKEN !== "") {
+						self.k = TOKEN;
 					}
 					else {
-						callback["function"].call(callback["object"], rspns.query, false, searchParams["QUERY"]); //return { 'data' : rspns.query, 'error' : "" }
-						self.k = rspns.token;
-						if(self.peek() == tID) { var item = self.dequeue(); }
-						self.kLock = false;
+						self.k = "";
 					}
+					callback["function"].call(callback["object"], AJAX, searchParams["QUERY"]); //return { 'data' : "", 'error' : AJAX.query }
 				}
 				else if(this.status = 404) {
-					callback["function"].call(callback["object"], "Could not contact Server", true, searchParams["QUERY"]); //return { 'data' : rspns.query, 'error' : "" }
-					self.k = rspns.token;
+					var AJAX = self.constructReturnObject();
+					AJAX.ERROR[0].LAYER = 100;
+					AJAX.ERROR[0].MESSAGE = "Could not find Page";
+					delete AJAX.TOKEN;
+					callback["function"].call(callback["object"], AJAX, searchParams["QUERY"]); //return { 'data' : AJAX.query, 'error' : "" }
+					self.k = "";
 					if(self.peek() == tID) { var item = self.dequeue(); }
 					self.kLock = false;
 				}
