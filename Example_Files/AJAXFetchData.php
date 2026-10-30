@@ -1,5 +1,9 @@
 <?php
 
+//This is an example file for the AJAXManager project that acts as a backend API
+//for fetching data.  It relies on the AJAXManager Server file for managing this
+//transaction with the database (AJAXManager Server acts as an API Gateway).
+
 session_start();
 
 include '../Server/AJAXManagerServer.php';
