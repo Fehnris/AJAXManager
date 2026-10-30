@@ -1,5 +1,9 @@
 <?php
 
+//This file is required as part of the AJAXManager Client project.
+//It provides a way for a web page to gain authorisation for
+//data access
+
 session_start();
 
 include '../Server/AJAXManagerServer.php';
