@@ -1,5 +1,9 @@
 <?php
 
+//ini_set('display_errors', 1);
+//ini_set('display_startup_errors', 1);
+//error_reporting(E_ALL);
+
 class AJAXManagerServer {
 	
 	private $DB_Credentials;
@@ -20,6 +24,8 @@ class AJAXManagerServer {
 	private $ASK;
 	private $ERROBJ;
 	private $ERRORS;
+	private $af;
+	private $av;
 	
 	public function __construct($DB_HOST, $DB_USER, $DB_PASSWORD,
 								$DB_NAME, $DB_TABLE_NAME,
@@ -28,16 +34,22 @@ class AJAXManagerServer {
 		$this->DB_Credentials = array($DB_HOST, $DB_USER, $DB_PASSWORD, $DB_NAME);
 		$this->dbTableName = $DB_TABLE_NAME;
 		$this->idFieldName = "id";
-		$this->tokenField = array("FIELD"=>"Token_Val", "VALUE"=>"");
-		$this->tokenHashField = array("FIELD"=>"Token_Hash", "VALUE"=>"");
-		$this->dateCreatedField = array("FIELD"=>"Date_Created", "VALUE"=>"");
-		$this->initialisationTokenField = array("FIELD"=>"Initialisation_Token", "VALUE"=>"");
-		$this->visitorDetailsField = array("FIELD"=>"Visitor_Details", "VALUE"=>"");
-		$this->sessionField = array("FIELD"=>"Session_ID", "VALUE"=>session_id());
-		$this->pageField = array("FIELD"=>"Auth_Page", "VALUE"=>$PAGE_NAME);
+		$this->af = "FIELD";
+		$this->av = "VALUE";
+		$this->tokenField = array($this->af=>"Token_Val", $this->av=>"");
+		$this->tokenHashField = array($this->af=>"Token_Hash", $this->av=>"");
+		$this->dateCreatedField = array($this->af=>"Date_Created", $this->av=>"");
+		$this->initialisationTokenField = array($this->af=>"Initialisation_Token", $this->av=>"");
+		$this->visitorDetailsField = array($this->af=>"Visitor_Details", $this->av=>"");
+		$this->sessionField = array($this->af=>"Session_ID", $this->av=>session_id());
+		$this->pageField = array($this->af=>"Auth_Page", $this->av=>$PAGE_NAME);
 		$this->ASK = "";
 		$this->ERROBJ = array();
 		$this->ERRORS = false;
+		$this->ISKStoreName = "AMSIS";
+		$this->ASKStoreName = "AMSAS";
+		$this->initialise_ISK_Store();
+		$this->initialise_ASK_Store();
 		
 	}
 	
@@ -46,18 +58,19 @@ class AJAXManagerServer {
 		$visitorDetails = $this->get_Visitor_Vars();
 		$ISKToken = $this->get_Random_Token();
 		$newDateTime = $this->get_Index_Date();
-		$ISKIndex = $this->sessionField['VALUE'].":".
+		$ISKIndex = $this->sessionField[$this->av].":".
 					$visitorDetails.":".
-					$this->pageField['VALUE'].":".
+					$this->pageField[$this->av].":".
 					$ISKToken;
 		$NewISK = hash("sha256", $ISKIndex.":".
-						 $nowDateTime);
-		$ISKIndex .= ":".$nowDateTime;
+						 $newDateTime);
+		$ISKIndex .= ":".$newDateTime;
 		$_SESSION[$this->ISKStoreName][$ISKIndex] = $NewISK;
-		return "{ 'CN' : '".base64_encode($this->sessionField['VALUE'].$ISKToken)."', 'CV' : '".$NewISK."' }";
+		return "{ 'CN' : '".base64_encode($this->sessionField[$this->av].$ISKToken)."', 'CV' : '".$NewISK."' }";
 	}
 	
 	public function Authorise() {
+		//return "bubblegum";
 		$firstASK = "";
 		if(isset($_GET['t'])) {
 			$authCookieName = $_GET['t'];
@@ -70,7 +83,7 @@ class AJAXManagerServer {
 				$ISKProperties = $ISKIndex ? $this->ISK_Index_To_Obj($ISKIndex) : null;
 				if(isset($ISKProperties)) {
 					//ISK has a valid entry in the store.
-					if($ISKProperties["SessionID"] == $this->sessionField['VALUE']) {
+					if($ISKProperties["SessionID"] == $this->sessionField[$this->av]) {
 						//The Session ID associated with the ISK is the same as the response call session.
 						if($ISKProperties["VisitorDetails"] == $visitorDetails) {
 							//**** Successful authentication ****
@@ -79,14 +92,16 @@ class AJAXManagerServer {
 																 $ISKProperties["AuthPage"].":".
 																 $ISKProperties["ISKToken"]);
 							$firstASK = $firstASKObj['FirstASK'];
-							$this->visitorDetailsField['VALUE'] = $ISKProperties["VisitorDetails"];
-							$this->pageField['VALUE'] = $ISKProperties['AuthPage'];
-							$this->initialisationTokenField['VALUE'] = $ISKProperties["ISKToken"];
-							$this->tokenField['VALUE'] = $firstASKObj['ASKToken'];
-							$this->tokenHashField['VALUE'] = $firstASK;
-							$this->dateCreatedField['VALUE'] = $this->index_Date_To_MYSQL($firstASKObj['CreationDateTime']);
+							$this->visitorDetailsField[$this->av] = $ISKProperties["VisitorDetails"];
+							$this->pageField[$this->av] = $ISKProperties['AuthPage'];
+							$this->initialisationTokenField[$this->av] = $ISKProperties["ISKToken"];
+							$this->tokenField[$this->av] = $firstASKObj['ASKToken'];
+							$this->tokenHashField[$this->av] = $firstASK;
+							$this->dateCreatedField[$this->av] = $this->index_Date_To_MYSQL($firstASKObj['CreationDateTime']);
 							unset($_SESSION[$this->ISKStoreName][$ISKIndex]);
 							setcookie($authCookieName, "", time()-3600);
+							//return "oggedy boogedy";
+							//return $this->DB_Credentials[0].$this->DB_Credentials[1].$this->DB_Credentials[2].$this->DB_Credentials[3];
 							$this->create_Auth_Record();
 						}
 						else {
@@ -127,7 +142,7 @@ class AJAXManagerServer {
 		$ASKProperties = $sendingASKIndex ? $this->ASK_Index_To_Obj($sendingASKIndex) : null;
 		if(isset($ASKProperties)) {
 			//ISK has a valid entry in the store.
-			if($ASKProperties["SessionID"] == $this->sessionField['VALUE']) {
+			if($ASKProperties["SessionID"] == $this->sessionField[$this->av]) {
 				//The Session ID associated with the ISK is the same as the response call session.
 				if($ASKProperties["VisitorDetails"] == $visitorDetails) {
 					//The Client that requested the ISK has the same agent properties as the Client that responded with the ISK.
@@ -137,22 +152,27 @@ class AJAXManagerServer {
 					$ASKIndex = implode(":", $ASKProperties);
 					$Authenticated = true;
 					$newASK = md5($ASKIndex);
-					$this->pageField['VALUE'] = $ASKProperties['AuthPage'];
-					$this->initialisationTokenField['VALUE'] = $ASKProperties['ISKToken'];
-					$this->visitorDetailsField['VALUE'] = $ASKProperties['VisitorDetails'];
-					$this->tokenField['VALUE'] = $ASKProperties['ASKToken'];
-					$this->tokenHashField['VALUE'] = $newASK;
-					$this->dateCreatedField['VALUE'] = $this->index_Date_To_MYSQL($ASKProperties['CreationDateTime']);
+					$this->pageField[$this->av] = $ASKProperties['AuthPage'];
+					$this->initialisationTokenField[$this->av] = $ASKProperties['ISKToken'];
+					$this->visitorDetailsField[$this->av] = $ASKProperties['VisitorDetails'];
+					$this->tokenField[$this->av] = $ASKProperties['ASKToken'];
+					$this->tokenHashField[$this->av] = $newASK;
+					$this->dateCreatedField[$this->av] = $this->index_Date_To_MYSQL($ASKProperties['CreationDateTime']);
 					$_SESSION[$this->ASKStoreName][$ASKIndex] = $newASK;
 					unset($_SESSION[$this->ASKStoreName][$sendingASKIndex]);
 					$set = array($this->tokenField, $this->tokenHashField, $this->dateCreatedField);
 					$where = array($this->sessionField, $this->visitorDetailsField, $this->pageField, $this->initialisationTokenField);
+					
 					$query = $this->build_Update_Query($set, $where);
 					$dbObj = $this->create_DB_Link();
 		
 					if(!isset($dbObj[1])) {
 						$result = $dbObj[0]->query($query);
 						$this->close_DB_Link($dbObj);
+					}
+					else {
+						$this->setError("Authentication failure. - ", 100);
+						//The database connection failed.
 					}
 				}
 				else {
@@ -258,18 +278,20 @@ class AJAXManagerServer {
 	}
 	
 	private function initialise_ISK_Store() {
-		if(!is_array($_SESSION[$this->ISKStoreName])) {
+		if(!isset($_SESSION[$this->ISKStoreName])) {
 			$_SESSION[$this->ISKStoreName] = array();
 		}
 	}
 	
 	private function initialise_ASK_Store() {
-		if(!is_array($_SESSION[$this->ASKStoreName])) {
+		if(!isset($_SESSION[$this->ASKStoreName])) {
 			$_SESSION[$this->ASKStoreName] = array();
 		}
+		
 	}
 	
 	private function get_Visitor_Vars() {
+		$visitorDetails = "";
 		$visitorDetails .= (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : "No Details");
 		$visitorDetails .= (isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : "No Details");
 		$visitorDetails .= (isset($_SERVER['REMOTE_HOST']) ? $_SERVER['REMOTE_HOST'] : "No Details");
@@ -277,29 +299,37 @@ class AJAXManagerServer {
 	}
 
 	private function check_For_Auth_Record() {
+		$total = 0;
 		$FIELDS_TO_INCLUDE = array("id");
 		$WHERE_CLAUSE = array();
-		$WHERE_CLAUSE[0] = array($this->sessionField);
-		$WHERE_CLAUSE[1] = array($this->visitorDetailsField);
-		$WHERE_CLAUSE[2] = array($this->pageField);
-		$WHERE_CLAUSE[3] = array($this->initialisationTokenField);
-		$WHERE_CLAUSE[4] = array($this->dateCreatedField);
-		$query = $this->build_Select_Query($FIELDS_TO_INCLUDE, $WHERE_CLAUSE);
+		$WHERE_CLAUSE[0] = $this->sessionField;
+		$WHERE_CLAUSE[1] = $this->visitorDetailsField;
+		$WHERE_CLAUSE[2] = $this->pageField;
+		$WHERE_CLAUSE[3] = $this->initialisationTokenField;
+		$WHERE_CLAUSE[4] = $this->dateCreatedField;
+		$query = $this->build_Select_Query("SELECT", $FIELDS_TO_INCLUDE, $WHERE_CLAUSE, null);
+		//return $query;
 		$dbObj = $this->create_DB_Link();
-		
-		$total = 0;
-		
 		if(!isset($dbObj[1])) {
-			if ($result = $dbObj[0]->query($query)) {
-				$total = $result->num_rows;
-			}
+			$stmt = $dbObj[0]->prepare($query);
+			$stmt->bind_param("sssis", $this->sessionField[$this->av], 
+									   $this->visitorDetailsField[$this->av], 
+									   $this->pageField[$this->av], 
+									   $this->initialisationTokenField[$this->av], 
+									   $this->dateCreatedField[$this->av]);
+			$stmt->execute();
+			$result = $stmt->get_result();
 			$this->close_DB_Link($dbObj);
+			$total = $result->num_rows;
 		}
 		return $total;
 	}
 	
+	
+	
 	private function create_Auth_Record() {
 		$record = $this->check_For_Auth_Record();
+		//return $record;
 		if($record == 0) {
 			$query = $this->build_Insert_Query();
 			$dbObj = $this->create_DB_Link();
@@ -310,13 +340,15 @@ class AJAXManagerServer {
 		}
 	}
 	
-	private function build_Select_Query($FIELDS_TO_INCLUDE, $WHERE_CLAUSE) {
-		$query = "Select ".implode(", ", $FIELDS_TO_INCLUDE)." From ".$this->dbTableName;
-		$where = array();
+	private function build_Select_Query($SELECT, $FIELDS_TO_INCLUDE, $WHERE_CLAUSE, $TABLE) {
+		//return $WHERE_CLAUSE;
+		$tbl = isset($TABLE) ? $TABLE : $this->dbTableName;
+		$query = $SELECT." ".implode(", ", $FIELDS_TO_INCLUDE)." From ".$tbl;
+		$where = array_fill(0, count($WHERE_CLAUSE), null);
 		$w = 0;
+		$sm = "";
 		while($w < count($WHERE_CLAUSE)) {
-			$sm = is_numeric($WHERE_CLAUSE[$w]['VALUE']) ? "" : "'";
-			$where[$w] = $WHERE_CLAUSE[$w]['FIELD']." = ".$sm.$WHERE_CLAUSE[$w]['VALUE'].$sm;
+			$where[$w] .= $WHERE_CLAUSE[$w][$this->af]." = ?";
 			$w ++;
 		}
 		$query .= isset($where) ? " where ".implode(" AND ", $where) : "";
@@ -325,21 +357,21 @@ class AJAXManagerServer {
 	
 	private function build_Insert_Query() {
 		$query = "Insert Into ".$this->dbTableName." (".$this->idFieldName.", ".
-												   $this->sessionField['FIELD'].", ".
-												   $this->initialisationTokenField['FIELD'].", ".
-												   $this->pageField['FIELD'].", ".
-												   $this->tokenField['FIELD'].", ".
-												   $this->tokenHashField['FIELD'].", ".
-												   $this->dateCreatedField['FIELD'].", ".
-												   $this->visitorDetailsField['FIELD'].") ".
+												   $this->sessionField[$this->af].", ".
+												   $this->initialisationTokenField[$this->af].", ".
+												   $this->pageField[$this->af].", ".
+												   $this->tokenField[$this->af].", ".
+												   $this->tokenHashField[$this->af].", ".
+												   $this->dateCreatedField[$this->af].", ".
+												   $this->visitorDetailsField[$this->af].") ".
 												   "VALUES (0, '".
-												   $this->sessionField['VALUE']."', ".
-												   $this->initialisationTokenField['VALUE'].", '".
-												   $this->pageField['VALUE']."', ".
-												   $this->tokenField['VALUE'].", '".
-												   $this->tokenHashField['VALUE']."', '".
-												   $this->dateCreatedField['VALUE']."', '".
-												   $this->visitorDetailsField['VALUE']."')";
+												   $this->sessionField[$this->av]."', ".
+												   $this->initialisationTokenField[$this->av].", '".
+												   $this->pageField[$this->av]."', ".
+												   $this->tokenField[$this->av].", '".
+												   $this->tokenHashField[$this->av]."', '".
+												   $this->dateCreatedField[$this->av]."', '".
+												   $this->visitorDetailsField[$this->av]."')";
 		//echo $query;
 		return $query;
 	}
@@ -353,15 +385,15 @@ class AJAXManagerServer {
 		$where = array();
 		$w = 0;
 		while($w < count($WHERE_CLAUSE)) {
-			$sm = is_numeric($WHERE_CLAUSE[$w]['VALUE']) ? "" : "'";
-			$where[$w] = $WHERE_CLAUSE[$w]['FIELD']." = ".$sm.$WHERE_CLAUSE[$w]['VALUE'].$sm;
+			$sm = is_numeric($WHERE_CLAUSE[$w][$this->av]) ? "" : "'";
+			$where[$w] = $WHERE_CLAUSE[$w][$this->af]." = ".$sm.$WHERE_CLAUSE[$w][$this->av].$sm;
 			$w ++;
 		}
 		$set = array();
 		$s = 0;
 		while($s < count($FIELDS_TO_UPDATE)) {
-			$sm = is_numeric($FIELDS_TO_UPDATE[$s]['VALUE']) ? "" : "'";
-			$set[$s] = $FIELDS_TO_UPDATE[$s]['FIELD']." = ".$sm.$FIELDS_TO_UPDATE[$s]['VALUE'].$sm;
+			$sm = is_numeric($FIELDS_TO_UPDATE[$s][$this->av]) ? "" : "'";
+			$set[$s] = $FIELDS_TO_UPDATE[$s][$this->af]." = ".$sm.$FIELDS_TO_UPDATE[$s][$this->av].$sm;
 			$s ++;
 		}
 		$query .= isset($set) ? " set ".implode(", ", $set) : "";
@@ -375,8 +407,15 @@ class AJAXManagerServer {
 	}
 	
 	private function create_DB_Link() {
-		$dbLink = new mysqli($this->DB_Credentials[0], $this->DB_Credentials[1], $this->DB_Credentials[2], $this->DB_Credentials[3]);
-		if (mysqli_connect_errno()) { $dbLinkError = "Connect failed: ".mysqli_connect_error(); }
+		//return "just before new db connection";
+		$dbLinkError = "";
+		try {
+			$dbLink = new mysqli($this->DB_Credentials[0], $this->DB_Credentials[1], $this->DB_Credentials[2], $this->DB_Credentials[3]);
+			} catch (mysqli_sql_exception $e) {
+			error_log($e->getMessage());
+			$dbLinkError = getMessage();
+			exit("Database connection failed.".$e->getMessage());
+		}
 		return array($dbLink, $dbLinkError);
 	}
 	
