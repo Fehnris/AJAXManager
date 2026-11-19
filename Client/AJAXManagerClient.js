@@ -1,23 +1,28 @@
-function AJAXManagerClient() {
-	this.k = "";
-	this.kLock = false;
-  	this.queue  = [];
-  	this.offset = 0;
-	this.AJAXObjectRef = {};
+class AJAXManagerClient {
 	
-	this.getLength = function(){
+	constructor() {
+		this.k = "";
+		this.kLock = false;
+  		this.queue  = [];
+  		this.offset = 0;
+		this.AJAXObjectRef = {};
+		//console.log("constructor ran");
+		//alert("constructor ran");
+	}
+	
+	getLength(){
     	return (this.queue.length - this.offset);
 	}
 
-	this.isEmpty = function(){
+	isEmpty(){
     	return (this.queue.length == 0);
 	}
 
-	this.enqueue = function(item){
+	enqueue(item){
     	this.queue.push(item);
 	}
 
-	this.dequeue = function(){
+	dequeue(){
     	if (this.queue.length == 0) return undefined;
 		var item = this.queue[this.offset];
     	if (++ this.offset * 2 >= this.queue.length){
@@ -27,11 +32,11 @@ function AJAXManagerClient() {
     	return item;
 	}
 
-  	this.peek = function(){
+  	peek(){
     	return (this.queue.length > 0 ? this.queue[this.offset] : undefined);
   	}
 	
-	this.fillAutoComplete = function(str, tID, textBoxID, self, e) {
+	fillAutoComplete(str, tID, textBoxID, self, e) {
 		var destID = self.AJAXObjectRef[[textBoxID]][[e]]["destinationID"];
 		if (str.length == 0) { 
 			if(self.peek() == tID) { var item = self.dequeue(); }
@@ -81,7 +86,7 @@ function AJAXManagerClient() {
 			xmlhttp.send();
 		}
 		else {
-			self.formatDropDownItems("No Dealer Names Beginning With ' " + str + " '", "dropDownItemContainerError", textBoxID, self, e);
+			self.formatDropDownItems("No Values Beginning With ' " + str + " '", "dropDownItemContainerError", textBoxID, self, e);
 			self.showAutoComplete("#" +self.AJAXObjectRef[[textBoxID]]["destinationElementID"]);
 			if(self.peek() == tID) { var item = self.dequeue(); }
 			self.kLock = false;
@@ -89,7 +94,7 @@ function AJAXManagerClient() {
 		}
 	}
 	
-	this.fetchClickData = function(str, tID, textBoxID, self, e) {
+	fetchClickData(str, tID, textBoxID, self, e) {
 		if (str.length == 0) { 
 			query = "";
 		}
@@ -120,7 +125,7 @@ function AJAXManagerClient() {
 		xmlhttp.send();
 	}
 
-	this.kLockCheck = function(tID, callback, str, counter, textBoxID, self, e) {
+	kLockCheck(tID, callback, str, counter, textBoxID, self, e) {
 		if(self.kLock == false && tID == self.peek()) {
 			self.kLock = true;
 			callback(str, tID, textBoxID, self, e);							   
@@ -130,7 +135,7 @@ function AJAXManagerClient() {
 		}
 	}
 
-	this.isAlphaNumeric = function(str) {
+	isAlphaNumeric(str) {
 		var code, i, len;
 		for (i = 0, len = str.length; i < len; i++) {
 			code = str.charCodeAt(i);
@@ -146,10 +151,10 @@ function AJAXManagerClient() {
 		return true;
 	}
 
-	this.formatDropDownItems = function(itemArray, itemClass, destID, self, e) {
+	formatDropDownItems(itemArray, itemClass, destID, self, e) {
 		var match = false;
 		if(self == this) { match = true; }
-		alert("this:" + this + " self: " + self + " match: " + match);
+		//alert("this:" + this + " self: " + self + " match: " + match);
 		var returnStr = "";
 		var textField = window.document.getElementById(destID);
 		var container = window.document.getElementById(self.AJAXObjectRef[[destID]][[e]]["destinationID"]);
@@ -172,24 +177,27 @@ function AJAXManagerClient() {
 		//return returnStr;
 	}
 
-	this.Authorise = function(AJAXAuthURL, authObj) {
+	Authorise(AJAXAuthURL, authObj) {
+		//alert(AJAXAuthURL + authObj);
 		document.cookie = authObj["CN"] + "=" + authObj["CV"] + ";path=/";
 		this.sendAuth(AJAXAuthURL, authObj["CN"]);
 	}
 
-	this.showAutoComplete = function(textBox) {
+	showAutoComplete(textBox) {
 		$(textBox).show();
 	}
 
-	this.hideAutoComplete = function(textBox) {
+	hideAutoComplete(textBox) {
 		$(textBox).hide();
 	}
 
-	this.sendAuth = function(url, CookieName) {
-		var self = this;
-		var xmlhttp = new XMLHttpRequest();
+	sendAuth(url, CookieName) {
+		//alert("In sendAuth");
+		const self = this;
+		const xmlhttp = new XMLHttpRequest();
 		xmlhttp.addEventListener("error", function() {});
 		xmlhttp.onreadystatechange = function() {
+			//alert("authorise status " + this.responseText);
 			if (this.readyState == 4 && this.status == 200) {
 				var AJAX = self.validateResponse(this.responseText);
 				self.k = AJAX.TOKEN;
@@ -199,7 +207,7 @@ function AJAXManagerClient() {
 		xmlhttp.send();
 	}
 	
-	this.addAJAXEventListener = function(eventType, elementID, eventOptions) {
+	addAJAXEventListener(eventType, elementID, eventOptions) {
 		this.AJAXObjectRef[[elementID]] = { [[eventType]] : eventOptions };
 		if(eventType == "onkeyup") {
 			if(this.AJAXObjectRef[[elementID]][[eventType]]["onkeyup.delay"] == undefined) {
@@ -223,11 +231,15 @@ function AJAXManagerClient() {
 		}
 	}
 	
-	this.validateResponse = function(json) {
+	validateResponse(json) {
+		//alert(json);
 		var response = this.constructReturnObject();
+		let a;
 		if(json !== null) {
 			try {
+				//alert("still inside try");
 				a = JSON.parse(json);
+				//alert("still inside try");
 				if(a && typeof a === 'object' && a.constructor === Object) {
 					var isValidReturn = this.validateReturnObject(a);
 					//alert("isValidReturn:" + isValidReturn);
@@ -256,7 +268,7 @@ function AJAXManagerClient() {
 		return response;
 	}
 	
-	this.validateReturnObject = function(returnObj) {
+	validateReturnObject(returnObj) {
 		if(returnObj.ERROR == undefined) {
 			//alert("ERROR");
 			return false;
@@ -276,7 +288,7 @@ function AJAXManagerClient() {
 		return true;
 	}
 	
-	this.setErrors = function(errorObj, error) {
+	setErrors(errorObj, error) {
 		var errorLength = error.length;
 		for(i = 0; i < errorLength; i++) {
 			errorObj.push(error[i]);
@@ -284,12 +296,12 @@ function AJAXManagerClient() {
 		return errorObj;
 	}
 	
-	this.setError = function(errorObj, error, layer) {
+	setError(errorObj, error, layer) {
 		errorObj.push({ 'LAYER' : layer, 'MESSAGE' : error });
 		return errorObj;
 	}
 	
-	this.constructReturnObject = function() {
+	constructReturnObject() {
 		var returnObj = { 'ERROR' : [],
 						  'ERRORS' : false,
 						  'DATA' : { 'TYPE' : null, 'VALUE' : "NULL" },
@@ -298,7 +310,7 @@ function AJAXManagerClient() {
 		return returnObj;
 	}
 	
-	this.clickHandler = function(htmlObjectID, callback, e) {
+	clickHandler(htmlObjectID, callback, e) {
 		htmlObject = window.document.getElementById(htmlObjectID);
 		var self = this;
 		var timer = null;
@@ -318,7 +330,7 @@ function AJAXManagerClient() {
 		htmlObject = null;
 	}
 	
-	this.onKeyUpAutoCompleteHandler = function(textBoxID, callback, e) {
+	onKeyUpAutoCompleteHandler(textBoxID, callback, e) {
 		textBox = window.document.getElementById(textBoxID);
 		var self = this;
 		var timer = null;
@@ -337,14 +349,14 @@ function AJAXManagerClient() {
 		textBox = null;
 	}
 	
-	this.addToQueue = function(searchParams, callback, callbackObj) {
+	addToQueue(searchParams, callback, callbackObj) {
 		var self = this;
 		var tID = Math.floor(Math.random() * 65535);
 		self.enqueue(tID);
 		self.kLockCheckAPI(tID, { 'function' : callback, 'object' : callbackObj }, searchParams, 0, self);
 	}
 	
-	this.kLockCheckAPI = function(tID, callback, searchParams, counter, self) {
+	kLockCheckAPI(tID, callback, searchParams, counter, self) {
 		if(self.kLock == false && tID == self.peek()) {
 			self.kLock = true;
 			self.fetchDataAPI(tID, callback, searchParams, self);							   
@@ -352,7 +364,7 @@ function AJAXManagerClient() {
 		else { setTimeout(function() { self.kLockCheckAPI(tID, callback, searchParams, (counter + 1), self) }, 100); }
 	}
 	
-	this.fetchDataAPI = function(tID, callback, searchParams, self) {
+	fetchDataAPI(tID, callback, searchParams, self) {
 		var str = "";
 		if (searchParams["QUERY"].length > 0) {
 			//if(self.isAlphaNumeric(searchParams["QUERY"])) {
