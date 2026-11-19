@@ -1,5 +1,7 @@
 class AJAXManagerClient {
 	
+	//some comments
+	
 	constructor() {
 		this.k = "";
 		this.kLock = false;
