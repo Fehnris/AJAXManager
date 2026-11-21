@@ -1,23 +1,24 @@
 <?php
 
-//This file is required as part of the AJAXManager Client project.
-//It provides a way for a web page to gain authorisation for
-//data access
+//ini_set('display_errors', 1);
+//ini_set('display_startup_errors', 1);
+//error_reporting(E_ALL);
+//
 
 session_start();
 
-include '../Server/AJAXManagerServer.php';
+//PHP library and PHP global settings files to include
+require __DIR__.'/../Settings/Settings.php';
+require __DIR__.'/../AM/AJAXManagerServer.php';
 
-//Database details to store optional AJAX Statistics
-$DB_HOST = "";
-$DB_USER = "";
-$DB_PASSWORD = "";
-$DB_NAME = "";
-$DB_AJAX_TABLE_NAME = ""
+//Database Authentication and database selection variables
+$DB_HOST = $mysqlDataBaseDetails['DB_HOST'];
+$DB_USER = $mysqlDataBaseDetails['DB_USER'];
+$DB_PASSWORD = $mysqlDataBaseDetails['DB_PASS'];
+$DB_NAME = $mysqlDataBaseDetails['DB_NAME'];
 
-$authObj = new AJAXAuthObject($DB_HOST, $DB_USER, $DB_PASSWORD, $DB_NAME, $DB_AJAX_TABLE_NAME, "");
-$firstASK = $authObj->authorise_ISK();
-
-echo ($firstASK !== "") ? $firstASK : "Authentication failure.  Access to this resource has been blocked";
+$authObj = new AJAXManagerServer($DB_HOST, $DB_USER, $DB_PASSWORD, $DB_NAME, "PHPScriptAuth", "");
+//echo "HOST".$DB_HOST;
+echo $authObj->Authorise();
 
 ?>
