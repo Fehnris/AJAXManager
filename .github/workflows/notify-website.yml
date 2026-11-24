@@ -11,8 +11,9 @@ jobs:
     steps:
       - name: Trigger submodule update in AJAXWebsite
         run: |
-          curl -X POST \
+          curl -f -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.SUBMODULE_SYNC_TOKEN }}" \
+            -H "User-Agent: GitHub-Actions-Submodule-Sync" \
             https://github.com \
             -d '{"event_type":"submodule-updated"}'
