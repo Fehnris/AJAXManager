@@ -14,7 +14,7 @@ jobs:
           GH_TOKEN: ${{ secrets.SUBMODULE_SYNC_TOKEN }}
         run: |
           curl --fail-with-body --request POST \
-            --url https://api.github.com/repos/OWNER/AJAXWebsite/dispatches \
+            --url https://api.github.com/repos/Fehnris/AJAXWebsite/dispatches \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GH_TOKEN" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
